@@ -27,6 +27,7 @@ import { isDraggableAreaVisible, isWithinDisplayBounds, mainWindowInitialize, op
 import { template } from "./utils/menuTemplate"
 import { spellcheck } from "./utils/spellcheck"
 import { loadingOptions, mainOptions } from "./utils/windowOptions"
+import { iniciarVigilanteSalidas } from "../modulos/vigilante-salidas/electron"
 
 // ----- STARTUP -----
 
@@ -420,6 +421,8 @@ ipcMain.on(NDI, receiveNDI)
 ipcMain.on(OMT, receiveOMT)
 ipcMain.on(BLACKMAGIC, receiveBM)
 ipcMain.on(AUDIO, receiveAudio)
+// reloads a crashed or frozen output, holding its last frame meanwhile (src/modulos/vigilante-salidas)
+iniciarVigilanteSalidas(getMainWindow)
 
 // send messages to main frontend (should not be used anymore - use sendMain() instead)
 export const toApp = (channel: string, ...args: any[]): void => {

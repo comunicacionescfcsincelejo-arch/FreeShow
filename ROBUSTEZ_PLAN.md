@@ -125,6 +125,38 @@ Las estimaciones son en **días de trabajo con IA**. No incluyen el ensayo en el
 **Riesgo:** bajo-medio. **Tiempo:** 3–5 días.
 **Cómo se prueba sin la tarjeta:** forzar la caída de una salida desde el Administrador de tareas de Windows y ver que vuelve sola con la misma slide.
 
+### Estado: programado el 2 de noviembre de 2026, falta la prueba con la tarjeta
+- Módulo `src/modulos/vigilante-salidas/`. En el original solo se tocó `src/electron/index.ts`, con 2 líneas.
+- **Mejor que lo planeado:** no hizo falta tocar `OutputSend.ts` ni la captura.
+  - El "congelado" usa `stopPainting()` de Electron. Mientras la página no pinta, la DeckLink repite el último cuadro.
+  - La copia del contenido se toma escuchando los mensajes que ya existen.
+- **Detecta:** caídas (el proceso de la salida muere) y congelamientos (la página no responde durante 15 s).
+- **Al volver a pintar:** primero termina las animaciones de entrada. Si no, la letra y el fondo aparecerían "desde negro" con su transición.
+- **Si se cae 5 veces en 10 minutos:** deja de intentar y la salida se queda en el último cuadro.
+- **Registro:** consola (`[VIGILANTE]`) y archivo `%APPDATA%\freeshow\vigilante-salidas.log`.
+- **Pruebas:**
+  - 15 pruebas automáticas de la lógica: caída, congelamiento, sin contenido, caídas repetidas, salida cerrada a propósito, monitor normal.
+  - 1 prueba con Electron real: la interfaz y una salida invisible se caen juntas. La salida queda sin pintar, se recarga, repone el contenido de la copia y vuelve a pintar en unos 2,6 s.
+- **Límite:** una salida en un monitor normal (no DeckLink) se recarga, pero no se puede congelar.
+
+### Prueba real con la tarjeta (día sin servicio, unos 45 minutos; se puede hacer el mismo día que la de audio)
+1. **Antes:** cerrar ProPresenter y tomar fotos de Desktop Video Setup, sin cambiar nada.
+2. **Arrancar en modo ensayo:** `$env:FS_VIGILANTE_PRUEBA=1; npm start`. Esto activa dos atajos de prueba que solo existen con esa variable.
+3. **Crear la salida** "Video" en *DeckLink Duo (4)*, 1080i59.94. Poner una canción con fondo de video y letra.
+4. **Mirar** en el multiview del ATEM o en OBS.
+5. **Caída:** presionar `Ctrl+Alt+Shift+K`.
+   - La imagen **se queda quieta en el último cuadro**, sin negro.
+   - En unos 3 segundos vuelve a moverse.
+   - Repetir 3 veces.
+6. **Cambio durante la caída:** presionar `Ctrl+Alt+Shift+K` y, enseguida, pasar a la siguiente slide. Al recuperarse debe mostrar la slide nueva.
+7. **Congelamiento:** presionar `Ctrl+Alt+Shift+J`.
+   - La imagen se queda quieta.
+   - A los ~15 segundos se reinicia sola y vuelve a moverse.
+8. **Audio:** durante los pasos 5 a 7, el audio debe seguir en el medidor de OBS. El audio no pasa por la ventana de la salida.
+9. **Cuatro salidas:** si hay tiempo, crear las 4 salidas del mapa y repetir el paso 5. Las 4 deben congelarse y recuperarse.
+10. **Revisar** `%APPDATA%\freeshow\vigilante-salidas.log`.
+11. **Al terminar:** cerrar FreeShow, abrir ProPresenter y comprobar que todo funciona como siempre.
+
 ---
 
 ## 4. Arreglar el cálculo de audio en 1080i59.94

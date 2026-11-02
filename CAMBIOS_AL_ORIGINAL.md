@@ -12,6 +12,8 @@ Base del fork: **FreeShow 1.6.8-beta.2** (commit `bed0f247`).
 | 2026-11-02 | `src/electron/audio/processAudio.ts` | `fase1-5/robustez` | El audio que va a la DeckLink se convierte a 48 kHz (una sola conversión, compartida con Icecast). | Si Windows tiene el audio a 44,1 kHz, la DeckLink recibía audio a la velocidad equivocada. |
 | 2026-11-02 | `config/building/electron-builder.yaml` | `fase1-5/robustez` | Se agregó `build/modulos/**` a los archivos del instalador. | Sin esto, los módulos de `src/modulos/` funcionan con `npm start` pero faltan en el instalador. |
 
+| 2026-11-02 | `src/electron/index.ts` | `fase1-5/robustez` | 2 líneas para importar y arrancar el módulo `src/modulos/vigilante-salidas` (y 1 de comentario). Nada más del archivo cambió. | Vigilante de salidas: recarga sola una salida caída o congelada, manteniendo el último cuadro. Todo lo demás vive en el módulo, que escucha eventos que ya existen (`render-process-gone`, mensajes `OUTPUT`/`STARTUP`) sin tocar el código de salidas. |
+
 > Los arreglos de audio conviene proponerlos a FreeShow (pull request), para dejar de mantenerlos aquí.
 
 > Los archivos nuevos del proyecto no cuentan como cambios al original: `CLAUDE.md`, `INSTALAR_WINDOWS.md`, `AUDITORIA.md`, este archivo, los planes `*_PLAN.md` y todo lo que esté en `src/modulos/`.
