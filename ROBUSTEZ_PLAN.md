@@ -206,6 +206,25 @@ En `src/electron/blackmagic/BlackmagicSender.ts` la cantidad de audio por cuadro
 
 Si algún día B se queda corto, **C** es el camino de largo plazo. B no se pierde: la interfaz, los looks y el formato JSON siguen sirviendo.
 
+### Fase 3: funciones de ProPresenter que debemos igualar
+
+ProPresenter tiene estas pestañas en cada pantalla de **Audiencia**. Son la meta mínima del enrutador y el mapeo:
+
+| Función ProPresenter | ¿Lo tiene FreeShow hoy? | Cómo lo haríamos |
+|---|---|---|
+| **Ajuste de esquina** (mover las 4 esquinas de la imagen) | ❌ No. Solo tiene recorte y edge blending. | En el shader del lienzo maestro (opción B): cada salida lleva sus 4 esquinas guardadas en JSON. Si se elige la opción A, con transformación CSS 3D. |
+| **Clave alfa** (fill + key por SDI) | ⚠️ Parcial. Existe "Alpha key" para Blackmagic, pero solo en 8-bit ARGB/BGRA, sin elegir entre key interno y externo, y con una conversión en JavaScript. | Ver la nota abajo sobre la Duo 2. |
+| **Color** (ajustes de color por pantalla) | ⚠️ Parcial. Hay filtros CSS en los medios y el interruptor SDR en Blackmagic, pero no un ajuste de color por salida. | En el shader del lienzo maestro: brillo, contraste, gama y balance por salida. |
+| **Retraso** (cuadros de retraso por pantalla) | ❌ No. | Una cola de N cuadros por salida en el envío a la DeckLink. Hoy todas usan 0, así que es de baja prioridad. |
+| **Grupos** (Audiencia / Escenario) | ❌ No. | Un módulo del enrutador: grupos guardados en JSON, que deciden qué capas recibe cada salida. |
+
+**Nota sobre la clave alfa en la Duo 2** (fuente: [SDK DeckLink, perfiles](https://sdk-doc.blackmagicdesign.com/decklink-sdk/HighLevel/profiles.html)):
+
+- Con el perfil actual de **4 conectores independientes**, la tarjeta **no ofrece clave alfa**. Lo comprobé en este PC: los 4 reportan keying interno y externo = no.
+- Para fill + key, la Duo 2 tiene que cambiar a un perfil en el que **cada salida con clave usa 2 conectores**: SDI 1 + SDI 2 forman un par y SDI 3 + SDI 4 forman el otro. Así quedarían **máximo 2 salidas** (con clave) en vez de 4.
+- **Eso no cabe en el mapa actual de 4 salidas.** Usar clave alfa obligaría a cambiar el perfil en Desktop Video Setup y a redistribuir las pantallas. Sería una decisión tuya, con la configuración anotada antes.
+- Lo que sí podemos igualar sin cambiar la tarjeta: que la salida "Redes" vaya con **letra sobre negro o sobre verde/croma**. Eso sirve para un mezclador que haga el key por luminancia o por croma.
+
 ### Decisiones que te pediré cuando lleguemos ahí
 - **¿WebGL2 "a mano" o una librería como PixiJS?** PixiJS es una dependencia nueva y pesada: ahorra tiempo, pero es otra pieza que mantener.
 - **¿Hacer un fork de `osr-capture`** para agregar el recorte por región?
