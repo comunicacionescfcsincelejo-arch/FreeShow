@@ -24,9 +24,9 @@ Programa de proyección para iglesias: lo mejor de ProPresenter + FreeShow + el 
 | Salida | Nombre | Grupo | Lleva | Pantalla física |
 |---|---|---|---|---|
 | SDI 1 | Background | Audiencia | Solo fondo | LED 6×2 (2016×672, gabinetes de 336×336) [por confirmar] |
-| SDI 2 | Redes | Audiencia | Letra para transmisión | Streaming |
+| SDI 2 | Redes | Audiencia | Letra para transmisión | Streaming. Llega al ATEM; el audio se elige allá. |
 | SDI 3 | STAGE | Escenario | Letra + hora | 2 monitores al fondo de la sala [por confirmar] |
-| SDI 4 | Video | Audiencia | Letra + fondo | Central + 2 laterales con distribuidor [por confirmar] |
+| SDI 4 | Video | Audiencia | Letra + fondo | Central + 2 laterales con distribuidor [por confirmar]. Llega al ATEM; el audio se elige allá. |
 
 - Por ahora **solo estas 4 salidas**. No hay NDI ni Resolume en el diseño actual.
 - La DeckLink **no aparece como monitor en Windows**: se maneja con el Blackmagic Desktop Video SDK.

@@ -163,15 +163,24 @@ En `src/electron/blackmagic/BlackmagicSender.ts` la cantidad de audio por cuadro
    - Cerrar ProPresenter.
    - Tomar fotos de Desktop Video Setup, sin cambiar nada.
    - Anotar el formato del audio de Windows (Configuración → Sonido → dispositivo de salida → Formato).
-2. **Conexión:** dejar el cable de **SDI 2 (Redes)** como está, hacia el equipo de transmisión. Escuchar con audífonos en ese equipo, o en un monitor o conversor SDI con salida de audio.
-3. **En FreeShow:** crear **una sola** salida Blackmagic "Redes" en *DeckLink Duo (2)*, 1080i59.94, 8-bit YUV, SDR activado. Arrancar con `$env:FS_CAP_STATS=1; npm start` para ver las estadísticas.
+2. **Conexión:** no se conecta nada nuevo.
+   - **SDI 4 (Video)** y **SDI 2 (Redes)** ya llegan al **ATEM**, y el operador elige ahí de qué entrada toma el audio.
+   - Se escucha y se mide en **OBS**: con el medidor de audio y, si se puede, con audífonos en el monitoreo de OBS.
+3. **Primera prueba: Video (SDI 4).**
+   - En FreeShow, crear **una sola** salida Blackmagic "Video" en *DeckLink Duo (4)*, 1080i59.94, 8-bit YUV, SDR activado.
+   - Arrancar con `$env:FS_CAP_STATS=1; npm start` para ver las estadísticas.
+   - En el ATEM, tomar el audio de la entrada que recibe SDI 4.
 4. **Tono de 1 kHz durante 1 minuto:**
-   - Debe oírse **continuo y limpio**.
-   - Con el error, se oiría áspero o entrecortado.
+   - El medidor de OBS debe quedarse **quieto y parejo**, y el tono debe oírse **continuo y limpio**.
+   - Con el error, el medidor tiembla y el tono se oye áspero o entrecortado.
 5. **Pitidos cada segundo durante 10 minutos,** junto a un cronómetro: no deben adelantarse ni atrasarse.
 6. **5 minutos de música o voz** para revisar la calidad.
-7. *(Opcional, unos 10 minutos)* Repetir el paso 4 con la versión sin arreglo, para confirmar que el error existía.
-8. **Al terminar:** cerrar FreeShow, abrir ProPresenter y comprobar que todo funciona como siempre.
+7. **Si hay tiempo: repetir en Redes (SDI 2).** Cambiar la salida a *DeckLink Duo (2)* (o crear una salida "Redes") y cambiar en el ATEM la entrada de audio a la de SDI 2. Repetir los pasos 4 a 6.
+8. *(Opcional, unos 10 minutos)* Repetir el paso 4 con la versión sin arreglo, para confirmar que el error existía.
+9. **Al terminar:** cerrar FreeShow, abrir ProPresenter y comprobar que todo funciona como siempre, incluido el audio en el ATEM.
+
+### Pendiente para fases posteriores
+- **Interruptor de audio por salida** (activo / silencio). Por ahora **el audio va a las 4 salidas**: Video y Redes llegan al ATEM, y ahí se elige cuál suena.
 
 ---
 
