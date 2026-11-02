@@ -24,10 +24,14 @@ Pruebas de la fase 1.5 con la DeckLink real: **conectores**, **audio**, **vigila
 6. **Preparar el material de prueba en FreeShow:**
    - Una canción con fondo de video y letra.
    - Una presentación con 4 diapositivas que digan en grande **DUO 1**, **DUO 2**, **DUO 3** y **DUO 4**.
-   - Un archivo con un **tono de 1 kHz (1 minuto)**.
-   - Un archivo con **pitidos cada segundo (10 minutos)**.
+   - Los dos archivos de tono, ya creados en `Documentos\FreeShow\Pruebas de audio\`:
+     - `tono-1kHz-1min.wav`: tono continuo de 1 kHz, 1 minuto.
+     - `pitidos-cada-segundo-10min.wav`: un pitido al inicio de cada segundo, y cada 10 segundos uno más agudo para contar, durante 10 minutos.
 
-   > Si no tienes los archivos de tono, pídemelos antes del día y los genero.
+     Los dos son 48 kHz, estéreo y -18 dBFS. Si faltan, se crean con:
+     ```powershell
+     cd C:\proyectos\FreeShow; node src/modulos/audio-decklink/generarTonos.mjs
+     ```
 7. **Arrancar FreeShow en modo ensayo:**
    ```powershell
    cd C:\proyectos\FreeShow; git checkout fase1-5/robustez; git pull; $env:FS_VIGILANTE_PRUEBA=1; $env:FS_CAP_STATS=1; npm start
