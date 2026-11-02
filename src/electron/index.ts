@@ -28,6 +28,7 @@ import { template } from "./utils/menuTemplate"
 import { spellcheck } from "./utils/spellcheck"
 import { loadingOptions, mainOptions } from "./utils/windowOptions"
 import { iniciarVigilanteSalidas } from "../modulos/vigilante-salidas/electron"
+import { iniciarModoServicio } from "../modulos/modo-servicio/motor"
 
 // ----- STARTUP -----
 
@@ -423,6 +424,8 @@ ipcMain.on(BLACKMAGIC, receiveBM)
 ipcMain.on(AUDIO, receiveAudio)
 // reloads a crashed or frozen output, holding its last frame meanwhile (src/modulos/vigilante-salidas)
 iniciarVigilanteSalidas(getMainWindow)
+// while active, the main window can't be closed (src/modulos/modo-servicio)
+iniciarModoServicio(getMainWindow)
 
 // send messages to main frontend (should not be used anymore - use sendMain() instead)
 export const toApp = (channel: string, ...args: any[]): void => {

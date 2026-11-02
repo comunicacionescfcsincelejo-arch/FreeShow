@@ -11,5 +11,5 @@
 **Cómo se prueba:**
 
 - `npx vitest run --config config/testing/vitest.config.ts src/modulos` (lógica, simulando caídas y congelamientos).
-- Con Electron real (sin DeckLink): `npx tsc -p config/typescript/tsconfig.electron.json`, y luego `npx playwright test --config src/modulos/vigilante-salidas/pruebas/playwright.config.ts`.
-- Con la tarjeta: ver `ROBUSTEZ_PLAN.md`, punto 3.
+- Con Electron real (sin DeckLink): `npx tsc -p config/typescript/tsconfig.electron.json`, y luego `npx playwright test --config src/modulos/playwright.config.ts`.
+- Con la tarjeta: ver `DIA_DE_PRUEBA.md`.

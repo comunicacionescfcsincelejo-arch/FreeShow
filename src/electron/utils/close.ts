@@ -12,9 +12,11 @@ import { stopApiListener } from "./api"
 import { stopMidi } from "./midi"
 import { SpeechToText } from "../ai/stt/SpeechToTextManager"
 import { unsetPlayingAudio } from "../audio/nowPlaying"
+import { bloquearCierreModoServicio } from "../../modulos/modo-servicio/motor"
 
 export let dialogClose = false // is unsaved
 export function callClose(e: Electron.Event) {
+    if (bloquearCierreModoServicio(e)) return
     if (dialogClose) return
     e.preventDefault()
 

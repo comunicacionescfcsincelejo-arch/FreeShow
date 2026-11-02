@@ -1,59 +1,14 @@
 // Prueba con Electron real (sin DeckLink): una salida invisible se cae y el vigilante la reabre.
 // Escenario más difícil: la interfaz también está caída, así que el contenido sale de la copia guardada.
-// Requiere el motor compilado: npx tsc -p config/typescript/tsconfig.electron.json (la interfaz la sirve Vite, como en npm start)
-// Ejecutar: npx playwright test --config src/modulos/vigilante-salidas/pruebas/playwright.config.ts
+// Ejecutar: ver src/modulos/playwright.config.ts
 
-import { _electron as electron } from "playwright"
 import { expect, test } from "@playwright/test"
-import { spawn, type ChildProcess } from "child_process"
-import tmp from "tmp"
-
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-let vite: ChildProcess | null = null
-test.beforeAll(async () => {
-    vite = spawn("npx", ["vite"], { shell: true, stdio: "ignore", env: { ...process.env, NODE_ENV: "development" } })
-    for (let i = 0; i < 60; i++) {
-        const lista = await fetch("http://localhost:3000").then(
-            (r) => r.ok,
-            () => false
-        )
-        if (lista) return
-        await esperar(1000)
-    }
-    throw new Error("Vite no arrancó en el puerto 3000")
-})
-test.afterAll(async () => {
-    if (!vite?.pid) return
-    const fin = spawn("taskkill", ["/pid", String(vite.pid), "/T", "/F"], { stdio: "ignore" })
-    await new Promise((r) => fin.on("exit", r))
-})
+import { abrirFreeShow, cerrarFreeShow, esperar } from "../../pruebasE2E"
 
 test("una salida invisible que se cae se reabre sola, congelada mientras tanto", async () => {
-    const carpeta = tmp.dirSync({ unsafeCleanup: true })
-    const app = await electron.launch({ args: ["."], env: { ...process.env, NODE_ENV: "development", FS_MOCK_STORE_PATH: carpeta.name } })
-
-    const lineas: string[] = []
-    const anotar = (d: Buffer) =>
-        lineas.push(
-            ...String(d)
-                .split("\n")
-                .filter((l) => l.includes("[VIGILANTE]"))
-        )
-    app.process().stdout?.on("data", anotar)
-    app.process().stderr?.on("data", anotar)
+    const { app, lineas } = await abrirFreeShow("[VIGILANTE]")
 
     try {
-        await app.waitForEvent("window")
-        await esperar(15000)
-
-        // en el proceso principal: la interfaz es la primera ventana con FreeShow cargado (las salidas se crean después)
-        await app.evaluate(({ webContents }) => {
-            const ventanas = webContents.getAllWebContents().filter((w) => w.getType() === "window" && !w.isOffscreen() && w.getURL().includes("localhost:3000"))
-            const id = Math.min(...ventanas.map((w) => w.id))
-            ;(global as any).__interfaz = () => webContents.fromId(id)
-        })
-
         // 1. crear una salida invisible (offscreen, como una DeckLink pero sin tarjeta) y darle contenido como lo haría la interfaz
         const creada = await app.evaluate(async ({ ipcMain }) => {
             const interfaz = (global as any).__interfaz()
@@ -104,8 +59,6 @@ test("una salida invisible que se cae se reabre sola, congelada mientras tanto",
         expect(lineas.some((l) => l.includes("contenido repuesto"))).toBe(true)
         expect(lineas.some((l) => l.includes("recuperada"))).toBe(true)
     } finally {
-        // cerrar sin el diálogo de "¿guardar?" de FreeShow (con todos sus procesos hijos)
-        const pid = app.process().pid
-        if (pid) await new Promise((r) => spawn("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore" }).on("exit", r))
+        await cerrarFreeShow(app)
     }
 })

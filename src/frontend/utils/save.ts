@@ -119,6 +119,7 @@ import { isSyncing, socketDisconnect, syncWithCloud } from "./cloudSync"
 import { newToast, setStatus, startAutosave } from "./common"
 import { syncDrive } from "./drive"
 import { autoDisableRemoteController, stopRemoteController } from "./remoteController"
+import { bloquearCierrePorModoServicio } from "../../modulos/modo-servicio/interfaz/estado"
 
 export function save(closeWhenFinished = false, customTriggers: SaveActions = {}) {
     updateSyncedOutputs()
@@ -333,6 +334,7 @@ export async function saveComplete({ closeWhenFinished, customTriggers }: { clos
 }
 
 export function initializeClosing(skipPopup = false) {
+    if (bloquearCierrePorModoServicio()) return
     // don't save automatically if an error has happened in case it breaks something
     if (!skipPopup && (get(special).showClosePopup || get(errorHasOccurred))) activePopup.set("unsaved")
     // "saved" does not count for all minor changes, but should be fine

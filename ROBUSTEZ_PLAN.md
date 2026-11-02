@@ -64,6 +64,19 @@ Las estimaciones son en **días de trabajo con IA**. No incluyen el ensayo en el
 
 **Riesgo:** medio, por la verificación de la recarga. **Tiempo:** 3–5 días.
 
+### Estado del 2 de noviembre de 2026
+- **1a + 1b, programados como "modo servicio"**, con lo que decidiste: mientras está activo, la ventana de edición **no se puede cerrar**. No se oculta.
+  - **Módulo:** `src/modulos/modo-servicio/`.
+  - **Enganches:** 1 o 2 líneas en `index.ts`, `close.ts`, `save.ts` y `MainLayout.svelte`.
+  - **Qué bloquea:** la X de Windows, Alt+F4, y el botón o el menú "Cerrar" de FreeShow. Lo bloquea *antes* de que FreeShow empiece a cerrar, para que no detenga grabaciones ni el control remoto.
+  - **Aviso:** muestra el mensaje acordado, con "Desactivar modo servicio", que pide confirmación. Si la interfaz está caída o congelada, el aviso lo da Windows.
+  - **Indicador:** marco rojo en toda la ventana y la etiqueta **MODO SERVICIO desde HH:MM**, abajo a la derecha.
+  - **Estado:** se guarda en `modo-servicio.json`. Si FreeShow se reinicia, vuelve activo.
+  - **Pruebas:**
+    - 14 pruebas de la lógica.
+    - 1 prueba con Electron real: activar, intentar cerrar por los dos caminos, "Seguir en servicio", cancelar la confirmación, desactivar, y al final sí cerrar.
+- **1c (recargar la interfaz si se cae) queda pendiente.** El vigilante ya protege las salidas cuando la interfaz se cae: siguen con el último cuadro, y se reponen desde la copia guardada.
+
 ---
 
 ## 2. Aislar la librería de la DeckLink (macadam) en un proceso aparte

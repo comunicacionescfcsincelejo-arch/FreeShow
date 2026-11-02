@@ -14,6 +14,11 @@ Base del fork: **FreeShow 1.6.8-beta.2** (commit `bed0f247`).
 
 | 2026-11-02 | `src/electron/index.ts` | `fase1-5/robustez` | 2 líneas para importar y arrancar el módulo `src/modulos/vigilante-salidas` (y 1 de comentario). Nada más del archivo cambió. | Vigilante de salidas: recarga sola una salida caída o congelada, manteniendo el último cuadro. Todo lo demás vive en el módulo, que escucha eventos que ya existen (`render-process-gone`, mensajes `OUTPUT`/`STARTUP`) sin tocar el código de salidas. |
 
+| 2026-11-02 | `src/electron/index.ts` | `fase1-5/robustez` | Otras 2 líneas (y 1 de comentario) para importar y arrancar `src/modulos/modo-servicio/motor`. | Modo servicio: guardar su estado y bloquear el cierre. |
+| 2026-11-02 | `src/electron/utils/close.ts` | `fase1-5/robustez` | 1 import + 1 línea al inicio de `callClose()`: `if (bloquearCierreModoServicio(e)) return`. | Bloquea la X de Windows / Alt+F4 antes de que FreeShow empiece a cerrar. |
+| 2026-11-02 | `src/frontend/utils/save.ts` | `fase1-5/robustez` | 1 import + 1 línea al inicio de `initializeClosing()`: `if (bloquearCierrePorModoServicio()) return`. | Bloquea el botón y el menú "Cerrar" de FreeShow antes de que detenga grabaciones, el control remoto, etc. |
+| 2026-11-02 | `src/frontend/MainLayout.svelte` | `fase1-5/robustez` | 1 import + `<ModoServicio />` después del contenido. | Muestra el indicador, el marco rojo y el aviso del modo servicio. |
+
 > Los arreglos de audio conviene proponerlos a FreeShow (pull request), para dejar de mantenerlos aquí.
 
 > Los archivos nuevos del proyecto no cuentan como cambios al original: `CLAUDE.md`, `INSTALAR_WINDOWS.md`, `AUDITORIA.md`, este archivo, los planes `*_PLAN.md` y todo lo que esté en `src/modulos/`.

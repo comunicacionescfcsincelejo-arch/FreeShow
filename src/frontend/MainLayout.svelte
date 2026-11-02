@@ -17,6 +17,7 @@
     import Timeline from "./components/timeline/Timeline.svelte"
     import { activeEdit, activePage, activeProfile, activeProject, activeShow, activeStage, ai, currentWindow, editMode, focusMode, loaded, os, projectView, resized, showChangeProfileMenu, showsCache, special } from "./stores"
     import { DEFAULT_WIDTH } from "./utils/common"
+    import ModoServicio from "../modulos/modo-servicio/interfaz/ModoServicio.svelte"
 
     $: page = $activePage
     $: isWindows = !$currentWindow && $os.platform === "win32"
@@ -129,6 +130,8 @@
 
     <Tipbar />
 </div>
+
+<ModoServicio />
 
 <style>
     .column,
