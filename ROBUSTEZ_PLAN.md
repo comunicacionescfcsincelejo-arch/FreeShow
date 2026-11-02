@@ -149,7 +149,29 @@ En `src/electron/blackmagic/BlackmagicSender.ts` la cantidad de audio por cuadro
 | `src/electron/blackmagic/BlackmagicSender.ts` (~20 líneas) | Sí. No se puede hacer como módulo, porque el cálculo está adentro. |
 
 **Riesgo:** bajo. **Tiempo:** 1 día + probarlo con la tarjeta: reproducir un tono de prueba y escuchar o medir la salida SDI.
-**Prioridad:** depende de si el audio de la iglesia sale por SDI. **Esa pregunta quedó sin responder.**
+**Prioridad:** **URGENTE**. El audio de la iglesia sale por SDI.
+
+### Estado: programado el 2 de noviembre de 2026, falta la prueba con la tarjeta
+- Módulo `src/modulos/audio-decklink/`, con 16 pruebas automáticas para 1080i59.94, 1080p59.94, 1080p29.97, 1080i50, 1080p25/30/60 y 1080p23.98. Cada modo se prueba durante 1 hora simulada sin desfase.
+- Cambio en `BlackmagicSender.ts` para usar ese cálculo.
+- **Arreglo extra 1:** el audio de los cuadros que la tarjeta salta se descarta. Si no, el audio se iba retrasando respecto al video, hasta 2 segundos.
+- **Arreglo extra 2** (`processAudio.ts`): el audio que va a la DeckLink se convierte a 48 kHz. Si Windows tiene el audio a 44,1 kHz, antes salía a la velocidad equivocada.
+- Verificado contra el SDK de Blackmagic: la velocidad real de cuadros es `timeScale / frameDuration`, tomada del modo, y en 1080i59.94 es 30000/1001. La secuencia 1602/1601/1602/1601/1602 coincide con la tabla NTSC 29.97 que usa FFmpeg.
+
+### Prueba real con la tarjeta (día sin servicio, unos 60–90 minutos)
+1. **Antes:**
+   - Cerrar ProPresenter.
+   - Tomar fotos de Desktop Video Setup, sin cambiar nada.
+   - Anotar el formato del audio de Windows (Configuración → Sonido → dispositivo de salida → Formato).
+2. **Conexión:** dejar el cable de **SDI 2 (Redes)** como está, hacia el equipo de transmisión. Escuchar con audífonos en ese equipo, o en un monitor o conversor SDI con salida de audio.
+3. **En FreeShow:** crear **una sola** salida Blackmagic "Redes" en *DeckLink Duo (2)*, 1080i59.94, 8-bit YUV, SDR activado. Arrancar con `$env:FS_CAP_STATS=1; npm start` para ver las estadísticas.
+4. **Tono de 1 kHz durante 1 minuto:**
+   - Debe oírse **continuo y limpio**.
+   - Con el error, se oiría áspero o entrecortado.
+5. **Pitidos cada segundo durante 10 minutos,** junto a un cronómetro: no deben adelantarse ni atrasarse.
+6. **5 minutos de música o voz** para revisar la calidad.
+7. *(Opcional, unos 10 minutos)* Repetir el paso 4 con la versión sin arreglo, para confirmar que el error existía.
+8. **Al terminar:** cerrar FreeShow, abrir ProPresenter y comprobar que todo funciona como siempre.
 
 ---
 

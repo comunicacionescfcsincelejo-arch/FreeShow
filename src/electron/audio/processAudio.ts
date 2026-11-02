@@ -53,10 +53,13 @@ export async function processAudio(buffer: Buffer, sampleRate = 48000, targetId?
     // Convert Planar Float32 to Int16 LE Interleaved PCM for legacy audio sinks
     const int16Buffer = convertPlanarFloat32ToInt16Interleaved(buffer, channelCount2)
 
+    // Blackmagic plays 48 kHz only; resample once per chunk for both sinks (the resampler keeps state between chunks)
+    const needsBlackmagic = needsLegacySinks && BlackmagicSender.hasOutputs()
+    const pcm48k = sr !== 48000 && (needsIcecast || needsBlackmagic) ? resamplePcmInt16Stereo(int16Buffer, sr, 48000) : int16Buffer
+
     // Only route to Icecast if targetId is "icecast" or not specified
     if (needsIcecast) {
         try {
-            const pcm48k = sr === 48000 ? int16Buffer : resamplePcmInt16Stereo(int16Buffer, sr, 48000)
             const frameByteSize = 960 * 2 * 2 // 3840 bytes (20ms at 48kHz stereo 16-bit)
 
             // Fast-path: Skip accumulator if perfectly sized
@@ -80,7 +83,7 @@ export async function processAudio(buffer: Buffer, sampleRate = 48000, targetId?
     }
 
     if (needsLegacySinks) {
-        BlackmagicSender.sendAudioBuffer(int16Buffer, { sampleRate: sr, channelCount: channelCount2 })
+        if (needsBlackmagic) BlackmagicSender.sendAudioBuffer(pcm48k, { sampleRate: 48000, channelCount: channelCount2 })
         sendAudioToOutputServer(int16Buffer, { sampleRate: sr, channelCount: channelCount2 })
 
         if (WebRtcHost.isRunning()) {

@@ -8,7 +8,11 @@ Base del fork: **FreeShow 1.6.8-beta.2** (commit `bed0f247`).
 
 | Fecha | Archivo | Rama | Qué se cambió | Por qué |
 |---|---|---|---|---|
-| — | *(ninguno todavía)* | — | — | — |
+| 2026-11-02 | `src/electron/blackmagic/BlackmagicSender.ts` | `fase1-5/robustez` | Las muestras de audio por cuadro se calculan con el módulo `src/modulos/audio-decklink`, usando la duración real del cuadro que reporta la tarjeta (`playback.frameRate`) y una cadencia exacta (1602/1601/… en 29.97). El audio de los cuadros que la tarjeta salta se descarta. El silencio se entrega con el tamaño exacto de cada cuadro. | En 1080i59.94 se mandaba la mitad del audio por cuadro (801 en vez de ~1601,6): cortes en el audio por SDI. Sin cadencia, el audio se desfasaba poco a poco, y al saltar cuadros se acumulaba retraso. |
+| 2026-11-02 | `src/electron/audio/processAudio.ts` | `fase1-5/robustez` | El audio que va a la DeckLink se convierte a 48 kHz (una sola conversión, compartida con Icecast). | Si Windows tiene el audio a 44,1 kHz, la DeckLink recibía audio a la velocidad equivocada. |
+| 2026-11-02 | `config/building/electron-builder.yaml` | `fase1-5/robustez` | Se agregó `build/modulos/**` a los archivos del instalador. | Sin esto, los módulos de `src/modulos/` funcionan con `npm start` pero faltan en el instalador. |
+
+> Los arreglos de audio conviene proponerlos a FreeShow (pull request), para dejar de mantenerlos aquí.
 
 > Los archivos nuevos del proyecto no cuentan como cambios al original: `CLAUDE.md`, `INSTALAR_WINDOWS.md`, `AUDITORIA.md`, este archivo, los planes `*_PLAN.md` y todo lo que esté en `src/modulos/`.
 
