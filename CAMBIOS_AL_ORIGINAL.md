@@ -25,9 +25,15 @@ Estos se hacen dentro de `node_modules`, que no se guarda en Git, y hay que repe
 
 Es la configuración **actual**, antes de cualquier cambio, para poder volver a ella. Viene de ProPresenter y de Blackmagic Desktop Video Setup.
 
+> ⚠️ **Este PC es el de la iglesia** (el mismo donde corre ProPresenter). Reglas:
+> - Nunca usar la DeckLink mientras ProPresenter esté abierto. Preguntar antes de cada prueba de salida.
+> - No cambiar nada en Blackmagic Desktop Video Setup.
+> - No tocar ni desinstalar ProPresenter.
+
 - **Tarjeta:** Blackmagic DeckLink Duo 2
 - **Conectores:** los 4 configurados como **salida**
-- **Modo de video:** **1080i59.94** en los 4
+- **Modo de video:** **1080i59.94** en los 4 mientras ProPresenter los usa. En reposo muestran **NTSC**, y eso es normal.
+- **Driver:** Blackmagic Desktop Video, en `C:\Program Files\Blackmagic Design\Blackmagic Desktop Video\`. Versión del SDK (DeckLink API): **16.5.0**.
 
 | Conector | Nombre en ProPresenter | Grupo | Lleva |
 |---|---|---|---|
@@ -36,9 +42,21 @@ Es la configuración **actual**, antes de cualquier cambio, para poder volver a 
 | SDI 3 | STAGE | Escenario | Letra + hora |
 | SDI 4 | Video | Audiencia | Letra + fondo |
 
-**Falta anotar el día de la prueba,** con fotos de Desktop Video Setup:
+### Lo que detecta FreeShow (2 de noviembre de 2026, solo lectura, sin enviar video, con ProPresenter cerrado)
+
+| Índice | Nombre que muestra FreeShow | ID del dispositivo | Sub-dispositivo | ¿Ofrece 1080i59.94? |
+|---|---|---|---|---|
+| 0 | DeckLink Duo (1) | `81:0145bbf0:00000000` | 1 de 4 | Sí |
+| 1 | DeckLink Duo (2) | `81:0145bbf1:00000000` | 2 de 4 | Sí |
+| 2 | DeckLink Duo (3) | `81:0145bbf2:00000000` | 3 de 4 | Sí |
+| 3 | DeckLink Duo (4) | `81:0145bbf3:00000000` | 4 de 4 | Sí |
+
+Cada conector ofrece 16 modos de salida y los formatos 8/10-bit YUV, 8-bit ARGB/BGRA y RGB de 10/12 bits.
+
+> Falta confirmar que "DeckLink Duo (1)" sea el conector físico **SDI 1**, y así con los demás. Se comprueba en la primera prueba de salida, con permiso y con ProPresenter cerrado.
+
+**Falta anotar el día de la prueba,** con fotos de Desktop Video Setup y sin cambiar nada:
 
 - [ ] Perfil de la Duo 2 (por ejemplo "4 half duplex")
-- [ ] Formato de color por conector (por ejemplo 8-bit YUV)
-- [ ] Versión del driver Desktop Video
+- [ ] Formato de color que usa ProPresenter en cada conector
 - [ ] Si el audio sale por SDI
