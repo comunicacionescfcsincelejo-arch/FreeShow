@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <title>Prototipo del motor de render</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                height: 100%;
+                background: black;
+                overflow: hidden;
+            }
+            #lienzo {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                display: block;
+            }
+            #hud {
+                position: fixed;
+                left: 12px;
+                top: 12px;
+                padding: 8px 12px;
+                white-space: pre;
+                font:
+                    14px Consolas,
+                    monospace;
+                color: #9f9;
+                background: rgb(0 0 0 / 0.6);
+            }
+            #hud:empty {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="lienzo"></canvas>
+        <div id="hud"></div>
+        <script type="module" src="escena.js"></script>
+    </body>
+</html>
