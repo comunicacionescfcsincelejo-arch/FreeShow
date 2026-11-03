@@ -118,3 +118,8 @@ cd C:\proyectos\FreeShow\node_modules\@discordjs\opus; ..\..\.bin\node-pre-gyp r
    STAGE on: 5511
    ```
    Y **no** debe aparecer `OPUS not found!`.
+
+6. **La tarjeta de video.** En la misma consola, busca la línea que empieza por `[GPU] FreeShow dibuja con:`. Dice qué tarjeta usa FreeShow. En el PC de la iglesia debe decir **Intel(R) UHD Graphics 630**.
+
+   > ⚠️ **NO cambiar la GPU de FreeShow antes de la Parte G de `DIA_DE_PRUEBA.md`.** La opción está en Configuración → **Otro** → **Dispositivo gráfico**. Debe quedar en **Automático**.
+   > La razón: `osr-capture`, que copia el cuadro para la DeckLink, abre la Intel. Si FreeShow dibuja con otra tarjeta, las salidas DeckLink podrían fallar.
