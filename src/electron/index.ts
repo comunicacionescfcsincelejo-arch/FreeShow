@@ -29,6 +29,7 @@ import { spellcheck } from "./utils/spellcheck"
 import { loadingOptions, mainOptions } from "./utils/windowOptions"
 import { iniciarVigilanteSalidas } from "../modulos/vigilante-salidas/electron"
 import { iniciarModoServicio } from "../modulos/modo-servicio/motor"
+import { registrarGpuAlArrancar } from "../modulos/diagnostico-gpu/motor"
 
 // ----- STARTUP -----
 
@@ -426,6 +427,8 @@ ipcMain.on(AUDIO, receiveAudio)
 iniciarVigilanteSalidas(getMainWindow)
 // while active, the main window can't be closed (src/modulos/modo-servicio)
 iniciarModoServicio(getMainWindow)
+// logs which GPU renders (src/modulos/diagnostico-gpu)
+registrarGpuAlArrancar()
 
 // send messages to main frontend (should not be used anymore - use sendMain() instead)
 export const toApp = (channel: string, ...args: any[]): void => {
