@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <title>Prototipo 2: WebGL + letra de FreeShow</title>
+        <!-- los estilos globales de FreeShow (fuentes, variables), servidos por su Vite -->
+        <link rel="stylesheet" href="/global.css" />
+        <style>
+            html,
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: black !important;
+            }
+            #pagina {
+                position: relative;
+            }
+            #lienzo {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+            }
+            /* la letra de FreeShow, encima del WebGL */
+            #letra {
+                position: absolute;
+                top: 0;
+                width: 1920px;
+                height: 1080px;
+                z-index: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="pagina">
+            <canvas id="lienzo"></canvas>
+            <div id="letra"></div>
+        </div>
+        <script type="module" src="./entrada.ts"></script>
+    </body>
+</html>

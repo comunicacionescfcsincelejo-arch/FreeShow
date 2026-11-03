@@ -4,13 +4,18 @@
 //   npx electron src/modulos/motor-render/prototipo/main.cjs demo [--gpu=alta] [--escena=maestro]
 //   npx electron src/modulos/motor-render/prototipo/main.cjs medir --nombre=x [--escena=una|maestro] [--ventana=visible|invisible]
 //        [--copias=1] [--captura=0|30|60] [--gpu=defecto|alta] [--segundos=30]
+//        [--escenas=maestro2,redes]  (varias ventanas, cada una con su escena)
+//
+// Escenas del segundo prototipo (letra real de FreeShow; las sirve el Vite de FreeShow, que se arranca solo):
+//   maestro2 (3840×1080: Background + Video), sep-fondo, sep-video, redes (1920×1080). Requieren el motor
+//   compilado (npx tsc -p config/typescript/tsconfig.electron.json) por el preload de FreeShow.
 //
 // "invisible" = ventana fuera de pantalla con textura compartida, como las salidas DeckLink de FreeShow.
 // "captura" = cuántas veces por segundo se copia el cuadro de la GPU a la memoria con osr-capture (en UYVY, como para SDI).
 
 const { app, BrowserWindow, ipcMain } = require("electron")
-const { spawn } = require("child_process")
-const { mkdirSync, writeFileSync } = require("fs")
+const { spawn, spawnSync } = require("child_process")
+const { appendFileSync, mkdirSync, writeFileSync } = require("fs")
 const { join } = require("path")
 
 const [tarea = "demo", ...resto] = process.argv.slice(process.defaultApp ? 2 : 1).filter((a) => !a.endsWith("main.cjs") && a !== ".")
@@ -31,16 +36,79 @@ app.setPath("userData", join(app.getPath("temp"), "freeshow-prototipo-render"))
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// todo lo que se escribe en la consola va también a resultados/banco.log, para leerlo mientras corre
+mkdirSync(RESULTADOS, { recursive: true })
+const REGISTRO = join(RESULTADOS, "banco.log")
+for (const nivel of ["log", "info", "warn", "error"]) {
+    const original = console[nivel].bind(console)
+    console[nivel] = (...args) => {
+        original(...args)
+        try {
+            appendFileSync(REGISTRO, `${new Date().toISOString().slice(11, 19)} ${args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}\n`)
+        } catch {
+            // sin archivo, queda la consola
+        }
+    }
+}
+
+// el banco nunca se queda colgado: al pasar el límite cierra su Vite y sale
+const LIMITE = Number(op.limite || (tarea === "demo" ? 0 : 180))
+if (LIMITE) {
+    setTimeout(() => {
+        console.error(`[banco] Pasó el límite de ${LIMITE} s: se cierra.`)
+        detenerVite()
+        app.exit(2)
+    }, LIMITE * 1000).unref()
+}
+
+const ESCENAS_PROTOTIPO2 = ["maestro2", "sep-fondo", "sep-video", "redes"]
+const RAIZ = join(__dirname, "..", "..", "..", "..")
+let vite = null
+
+// el segundo prototipo usa el Vite de FreeShow (puerto 3000) para compilar sus componentes Svelte
+async function asegurarVite() {
+    const responde = () =>
+        fetch("http://localhost:3000").then(
+            (r) => r.ok,
+            () => false
+        )
+    if (await responde()) return
+    console.log("[banco] Arrancando Vite (solo el de esta prueba)")
+    vite = spawn("npx", ["vite"], { cwd: RAIZ, shell: true, stdio: "ignore", env: { ...process.env, NODE_ENV: "development" } })
+    for (let i = 0; i < 60; i++) {
+        if (await responde()) return
+        await esperar(1000)
+    }
+    throw new Error("Vite no arrancó en el puerto 3000")
+}
+// cierra SOLO el Vite que abrió este banco (por su número de proceso, con sus hijos), y espera a que termine.
+// Si Vite ya estaba abierto (por ejemplo, el de npm start), no se toca.
+function detenerVite() {
+    if (!vite?.pid) return
+    spawnSync("taskkill", ["/pid", String(vite.pid), "/T", "/F"], { stdio: "ignore" })
+    console.log(`[banco] Vite de la prueba cerrado (proceso ${vite.pid})`)
+    vite = null
+}
+process.on("exit", detenerVite)
+
+function tamano(escena) {
+    if (escena === "maestro") return [3840, 2160]
+    if (escena === "maestro2") return [3840, 1080]
+    return [1920, 1080]
+}
+
 function abrir({ escena, invisible, hud }) {
-    const [ancho, alto] = escena === "maestro" ? [3840, 2160] : [1920, 1080]
+    const [ancho, alto] = tamano(escena)
+    const prototipo2 = ESCENAS_PROTOTIPO2.includes(escena)
     const ventana = new BrowserWindow({
         width: invisible ? ancho : 1280,
         height: invisible ? alto : 720,
         show: !invisible,
         backgroundColor: "#000000",
         webPreferences: {
-            preload: join(__dirname, "preload.cjs"),
+            preload: prototipo2 ? join(__dirname, "..", "prototipo2", "preload.cjs") : join(__dirname, "preload.cjs"),
             contextIsolation: true,
+            sandbox: false,
             backgroundThrottling: false,
             offscreen: invisible ? { useSharedTexture: true } : false
         }
@@ -52,18 +120,25 @@ function abrir({ escena, invisible, hud }) {
     }
     ventana.webContents.on("console-message", (e) => e.level !== "debug" && console.log(`[página] ${e.message}`))
     ventana.webContents.on("render-process-gone", (_e, d) => console.log(`[página] se cayó: ${d.reason}`))
-    ventana.loadFile(join(__dirname, "index.html"), { query: { escena, hud: hud ? "1" : "0" } })
+    if (prototipo2) {
+        const ruta = join(__dirname, "..", "prototipo2", "index.html").replace(/\\/g, "/")
+        ventana.loadURL(`http://localhost:3000/@fs/${ruta}?escena=${escena}`)
+    } else ventana.loadFile(join(__dirname, "index.html"), { query: { escena, hud: hud ? "1" : "0" } })
     return { ventana, ancho, alto }
 }
 
 // ---- copia del cuadro (la "captura actual" de FreeShow para DeckLink) ----
-function capturar(ventana, clave, porSegundo, repartirEn4) {
+// si la página tiene varias salidas (lienzo maestro), se reparten en cuadros de 1920×1080 copiando filas
+function capturar(ventana, clave, porSegundo, [ancho, alto]) {
     const osr = require("osr-capture")
     const datos = { pintados: 0, copiados: 0, saltados: 0, msCopia: [], msReparto: [], error: null }
     let ocupado = false
     let ultimaCopia = 0
     const intervalo = porSegundo > 0 ? 1000 / porSegundo : Infinity
-    const partes = repartirEn4 ? [0, 1, 2, 3].map(() => Buffer.alloc(1920 * 2 * 1080)) : []
+    const regiones = []
+    for (let y = 0; y < alto / 1080; y++) for (let x = 0; x < ancho / 1920; x++) regiones.push({ x, y })
+    const repartir = regiones.length > 1
+    const partes = repartir ? regiones.map(() => Buffer.alloc(1920 * 2 * 1080)) : []
 
     ventana.webContents.on("paint", (evento) => {
         const textura = evento.texture
@@ -84,15 +159,15 @@ function capturar(ventana, clave, porSegundo, repartirEn4) {
             (buffer) => {
                 datos.msCopia.push(performance.now() - ahora)
                 datos.copiados++
-                if (repartirEn4) {
-                    // del lienzo maestro 3840×2160 (UYVY = 2 bytes por píxel) a 4 salidas 1920×1080, copiando filas
+                if (repartir) {
+                    // del lienzo maestro (UYVY = 2 bytes por píxel) a salidas de 1920×1080, copiando filas
                     const t = performance.now()
                     const fila = 1920 * 2
-                    for (let r = 0; r < 4; r++) {
-                        const x0 = (r % 2) * fila
-                        const y0 = Math.floor(r / 2) * 1080
+                    regiones.forEach(({ x, y: fy }, r) => {
+                        const x0 = x * fila
+                        const y0 = fy * 1080
                         for (let y = 0; y < 1080; y++) buffer.copy(partes[r], y * fila, (y0 + y) * width * 2 + x0, (y0 + y) * width * 2 + x0 + fila)
-                    }
+                    })
                     datos.msReparto.push(performance.now() - t)
                 }
                 textura.release()
@@ -154,13 +229,28 @@ function percentil(lista, p) {
 
 async function medir() {
     const ventanas = []
-    for (let i = 0; i < COPIAS; i++) ventanas.push(abrir({ escena: ESCENA, invisible: VENTANA === "invisible" }))
-    const listas = ventanas.map(({ ventana }) => new Promise((r) => ipcMain.once("listo", (_e, err) => r(err))))
-    const errores = (await Promise.all(listas)).filter(Boolean)
-    if (errores.length) throw new Error(errores.join("\n"))
-    console.log(`[banco] ${ventanas.length} ventana(s) listas; calentando ${CALENTAMIENTO} s`)
+    const escenas = op.escenas ? op.escenas.split(",") : Array(COPIAS).fill(ESCENA)
+    if (escenas.some((e) => ESCENAS_PROTOTIPO2.includes(e))) await asegurarVite()
 
-    const capturas = VENTANA === "invisible" && CAPTURA > 0 ? ventanas.map(({ ventana }, i) => capturar(ventana, `prueba-${i}`, CAPTURA, ESCENA === "maestro")) : []
+    // cada ventana avisa "listo" una vez; se espera a todas
+    const errores = []
+    const todasListas = new Promise((resolver) => {
+        let faltan = escenas.length
+        const alListo = (_e, err) => {
+            if (err) errores.push(err)
+            if (--faltan === 0) {
+                ipcMain.removeListener("listo", alListo)
+                resolver()
+            }
+        }
+        ipcMain.on("listo", alListo)
+    })
+    for (const escena of escenas) ventanas.push(abrir({ escena, invisible: VENTANA === "invisible" }))
+    await todasListas
+    if (errores.length) throw new Error(errores.join("\n"))
+    console.log(`[banco] ${ventanas.length} ventana(s) listas (${escenas.join(", ")}); calentando ${CALENTAMIENTO} s`)
+
+    const capturas = VENTANA === "invisible" && CAPTURA > 0 ? ventanas.map(({ ventana, ancho, alto }, i) => capturar(ventana, `prueba-${i}`, CAPTURA, [ancho, alto])) : []
 
     await esperar(CALENTAMIENTO * 1000)
     for (const { ventana } of ventanas) await ventana.webContents.executeJavaScript("window.__reiniciar()")
@@ -192,7 +282,7 @@ async function medir() {
     const resultado = {
         nombre: op.nombre || "sin-nombre",
         fecha: new Date().toISOString(),
-        opciones: { escena: ESCENA, ventana: VENTANA, copias: COPIAS, captura: CAPTURA, gpu: op.gpu || "defecto", segundos: SEGUNDOS },
+        opciones: { escenas, ventana: VENTANA, captura: CAPTURA, gpu: op.gpu || "defecto", segundos: SEGUNDOS },
         gpuActiva: (await app.getGPUInfo("basic")).gpuDevice?.find((d) => d.active),
         paginas,
         cpu: { porTipo: cpuPromedio, total: cpuTotal, nota: "% de un núcleo (este PC tiene 8 núcleos = 800%)" },
@@ -216,16 +306,22 @@ async function medir() {
 async function tomarFotos(carpeta) {
     if (!carpeta) throw new Error("Falta --carpeta=<ruta completa>")
     mkdirSync(carpeta, { recursive: true })
-    for (const escena of ["una", "maestro"]) {
-        const { ventana } = abrir({ escena, invisible: false, hud: true })
+    const escenas = op.escenas ? op.escenas.split(",") : ["una", "maestro"]
+    if (escenas.some((e) => ESCENAS_PROTOTIPO2.includes(e))) await asegurarVite()
+    for (const escena of escenas) {
+        // las del segundo prototipo, en ventana invisible de tamaño real (como una salida), para fotografiar la página entera
+        const { ventana } = abrir({ escena, invisible: ESCENAS_PROTOTIPO2.includes(escena), hud: true })
         const err = await new Promise((r) => ipcMain.once("listo", (_e, e) => r(e)))
         if (err) throw new Error(err)
-        const veces = escena === "una" ? [1.5, 4.5, 7.5, 10.5, 13.5] : [4.5]
+        // en el segundo prototipo: una foto con la letra quieta y otra durante el cambio de diapositiva (a los 4 s)
+        const veces = escena === "una" ? [1.5, 4.5, 7.5, 10.5, 13.5] : ESCENAS_PROTOTIPO2.includes(escena) ? [3, 4.15, 6] : [4.5]
         let antes = 0
         for (const [i, t] of veces.entries()) {
             await esperar((t - antes) * 1000)
             antes = t
-            const imagen = await ventana.webContents.capturePage()
+            let imagen = await ventana.webContents.capturePage()
+            // reducida a 1600 de ancho para que pese poco
+            if (imagen.getSize().width > 1600) imagen = imagen.resize({ width: 1600 })
             const ruta = join(carpeta, `${escena}-${i + 1}.png`)
             writeFileSync(ruta, imagen.toPNG())
             console.log(`Foto: ${ruta}`)
@@ -278,12 +374,16 @@ app.whenReady().then(async () => {
         } else if (tarea === "fotos") {
             await tomarFotos(op.carpeta)
         } else {
+            if (ESCENAS_PROTOTIPO2.includes(ESCENA)) await asegurarVite()
             abrir({ escena: ESCENA, invisible: false, hud: true })
+            app.on("before-quit", detenerVite)
             return // la demo queda abierta
         }
+        detenerVite()
         app.quit()
     } catch (err) {
         console.error("ERROR:", err)
+        detenerVite()
         app.exit(1)
     }
 })

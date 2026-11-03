@@ -148,6 +148,48 @@ El prototipo dibuja **todo** en WebGL. FreeShow hoy dibuja todo como página web
 
 ---
 
+## Segundo prototipo: opción B ajustada, con la letra real de FreeShow
+
+Hecho con los 3 ajustes aprobados:
+- **Lienzo de 3840×1080** solo con *Background* (izquierda) y *Video* (derecha).
+- **Redes** como ventana liviana aparte.
+- **Letra en HTML encima del WebGL.**
+
+La letra **no es una imitación**: la dibuja el componente original de FreeShow (`Output.svelte`, sin modificarlo), con una canción de prueba en el formato `.show`. Salen sus fuentes, sus estilos y **sus transiciones**: la diapositiva cambia cada 4 s, 8 cambios por medición. Código: `src/modulos/motor-render/prototipo2/`.
+
+**Revisado a ojo** con capturas:
+- *Background* lleva solo el fondo.
+- *Video* lleva el fondo, la capa con ajuste de esquinas y la letra de FreeShow encima. La transición de FreeShow se ve fundiéndose sobre el WebGL.
+- *Redes* lleva la letra sobre negro.
+
+| # | Prueba | Tarjeta | Cuadros/s (cada ventana) | Saltos | GPU 3D | Decodificador | CPU (% de 1 núcleo) | Copia del cuadro |
+|---|---|---|---|---|---|---|---|---|
+| q1 | **Opción B ajustada:** página 3840×1080 (Background + Video) + Redes aparte | Intel | 60,0 · 60,0 | 0 | **66%** (pico 80%) | **10%** | 9,8 | 10,1 ms la página doble + 2,0 ms de reparto en 2 salidas |
+| q2 | **Método actual:** Background, Video y Redes en 3 ventanas, cada una con sus videos | Intel | 60,0 · 60,0 · 60,0 | 0 | 77% (pico 82%) | 19% | 13,5 | 7,2 y 7,8 ms por salida |
+| q3 | Opción B ajustada | NVIDIA | 60,0 · 60,0 | 0 | **11%** | **41%** | 4,2 | ❌ falla (como antes) |
+| q4 | Método actual | NVIDIA | 60,0 · 60,0 · 60,0 | 0 | (dato inválido de Windows) | 56% | 7,3 | ❌ falla |
+
+**Lo que dicen los números:**
+1. **El ajuste funcionó.** El lienzo de 4K del primer prototipo tumbaba la Intel (98%, 50 fps). La página de 3840×1080 con letra real va a **60 fps sin saltos**, con 66%.
+2. **Frente al método actual, la opción B ajustada ahorra:**
+   - **la mitad del decodificador** (10% contra 19% en la Intel; 41% contra 56% en la NVIDIA);
+   - **11 puntos de GPU de dibujo** en la Intel (66% contra 77%);
+   - un poco de procesador (9,8 contra 13,5).
+3. **La letra en HTML encima del WebGL no costó casi nada:** el tiempo de GPU de la página fue de 4,1 ms en la Intel. Chromium la compone en la GPU, junto con el WebGL.
+4. **Repartir la página doble en 2 salidas** costó **2,0 ms** de procesador por cuadro. No hace falta el fork de `osr-capture`.
+5. **Sigue en pie la limitación de la NVIDIA:** la copia para la DeckLink falla (`OpenSharedResource failed`). Se resuelve con la Parte G de `DIA_DE_PRUEBA.md` o con el fork.
+
+**Dos anomalías, anotadas para revisar:**
+- En q4, el contador de Windows devolvió un número imposible para la GPU 3D de la NVIDIA, así que no se usa.
+- En q2, la ventana de Redes **no envió ningún cuadro a copiar**, aunque dibujaba a 60 fps y cambió de diapositiva 8 veces. En q1 y q4 sí los envió (11 por segundo, solo cuando cambia la letra, que es lo normal en una ventana invisible). Hay que repetirla antes de sacar conclusiones sobre Redes.
+
+**Qué falta por probar antes de integrar:**
+- La pantalla de escenario real de FreeShow (STAGE) como ventana aparte.
+- El audio de los videos de fondo.
+- Estilos distintos por salida.
+- Qué pasa si la tarjeta se reinicia (pérdida del contexto WebGL).
+- Cómo convive con el vigilante.
+
 ## Riesgo para el día de prueba (ya, sin esperar la fase 2)
 
 FreeShow, tal como está, dibuja con la **Intel** en este PC. Con las 4 salidas del mapa y un fondo de video en Background y en Video, esa tarjeta puede quedar al límite (como en m5).
@@ -160,8 +202,8 @@ En la parte D del día de prueba, con las 4 salidas, **conviene mirar si los vid
 
 1. **Hacer primero el día de prueba** (`DIA_DE_PRUEBA.md`), como pide CLAUDE.md antes de empezar una fase.
 2. **Probar el monitor en la NVIDIA**, un día sin servicio. Hay que anotar antes cómo está conectado todo. Después, repetir m3 a m8 con `--gpu=defecto`: si la copia funciona en la NVIDIA, se evita el fork.
-3. **Segundo prototipo:** el lienzo de 3840×1080 para Background y Video, con **la letra real de FreeShow en HTML encima**, copiado y repartido a 2 salidas invisibles. Hay que medir lo mismo y comparar con m5 y m6.
-4. Solo después, decidir la integración con FreeShow.
+3. ~~Segundo prototipo~~ **Hecho** (sección "Segundo prototipo"): la opción B ajustada queda confirmada con números.
+4. Probar lo que falta (lista de arriba) y después decidir la integración con FreeShow.
 
 ---
 
